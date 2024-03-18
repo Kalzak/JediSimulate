@@ -1,3 +1,6 @@
 [submodule "Uniswap/PoolUtils/lib/forge-std"]
 	path = Uniswap/PoolUtils/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
