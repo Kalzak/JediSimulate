@@ -238,6 +238,11 @@ class UniswapPool:
             status = "reverted"
 
         return status, reason
+    
+    def get_position(self, owener, tick_lower, tick_upper):
+        pass
+        # functions.positions.get(owner, tick_lower, tick_upper).call()
+
 
     def _mint_tokens(self, token, recipient, amount):
         tx_hash = token.functions.mint(recipient, amount).transact({"from": self.account.address})

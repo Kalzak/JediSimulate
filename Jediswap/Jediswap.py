@@ -118,6 +118,15 @@ class JediswapPool:
             path_to_casm=account_casm_path
         )
         self.account_classhash = account_class_hash
+        print(f'''
+Jediswap addresses:
+FACTORY: {factory_contract}
+POOL:    {pool_contract}
+TOKEN_A: {token_a_contract}
+TOKEN_B: {token_b_contract}
+TOKEN_0: {self.token0}
+TOKEN_1: {self.token1}
+''')
     
     def collect(self, interaction):
         caller, _ = self._register_user(interaction["caller"])
@@ -244,7 +253,13 @@ Token1 amount: {t1_amt}
             reason = str(e)
             status = "reverted"
         
-        return status, reason, tx_hash
+        position = {
+            "owner": interaction["data"]["recipient"],
+            "tick_lower": tick_lower,
+            "tick_upper": tick_upper
+        }
+        
+        return status, reason, tx_hash, position
 
     def swap(self, interaction):
         # Register the caller and recipient
@@ -298,6 +313,22 @@ Data:                 {0}
             status = "reverted"
         
         return status, reason, tx_hash
+    
+    def get_position(self, owner, tick_lower, tick_upper):
+        jedi_owner = self.address_register[str(owner)]
+        tick_lower_sign = int(tick_lower < 0)
+        tick_upper_sign = int(tick_upper < 0)
+        position_info = self._tx_call(
+            to=self.pool,
+            func='get_position_info',
+            calldata=[
+                str(jedi_owner),
+                str(abs(tick_lower)), str(tick_lower_sign),
+                str(abs(tick_upper)), str(tick_upper_sign)
+            ]
+        )
+        return position_info
+
     
     def _register_user(self, address):
         if address in self.address_register.keys():
