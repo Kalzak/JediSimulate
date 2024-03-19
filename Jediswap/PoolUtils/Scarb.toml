@@ -11,7 +11,6 @@ casm = true
 casm-add-pythonic-hints = true
 allowed-libfuncs-list.name = "all"
 build-external-contracts = [
-    "openzeppelin::presets::erc20::ERC20", 
     "jediswap_v2_core::jediswap_v2_pool::JediSwapV2Pool",
     "jediswap_v2_core::jediswap_v2_factory::JediSwapV2Factory"
 ]

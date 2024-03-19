@@ -10,6 +10,12 @@ use yas_core::numbers::signed_integer::{i32::i32, i128::i128, i256::i256};
 #[starknet::interface]
 trait IJediSwapV2Account<TContractState> {
     fn get_pool(self: @TContractState) -> ContractAddress;
+    fn transfer_token(
+            self: @TContractState, 
+            token_addr: ContractAddress,
+            recipient: ContractAddress,
+            amount: u128
+    );
     fn initialize(ref self: TContractState, sqrt_price_X96: u256);
     fn mint(
         ref self: TContractState,
@@ -113,6 +119,17 @@ mod JediSwapV2Account {
         fn get_pool(self: @ContractState) -> ContractAddress {
             self.pool.read()
         }
+
+        fn transfer_token(
+            self: @ContractState, 
+            token_addr: ContractAddress,
+            recipient: ContractAddress,
+            amount: u128
+        ) {
+            let token_dispatcher = IERC20Dispatcher { contract_address: token_addr };
+            token_dispatcher.transfer(recipient, amount.into());
+        }
+
         fn initialize(ref self: ContractState, sqrt_price_X96: u256) {
             let pool_dispatcher = IJediSwapV2PoolDispatcher {
                 contract_address: self.pool.read()

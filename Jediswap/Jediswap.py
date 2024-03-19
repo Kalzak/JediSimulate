@@ -11,6 +11,7 @@ class JediswapPool:
         # Create the address register structure
         self.address_register = {}
         self.account_classhash = None
+        self.admin_account = None
         self.pool = None
         self.token0 = None
         self.token1 = None
@@ -27,10 +28,6 @@ class JediswapPool:
         account_sierra_path = 'Jediswap/PoolUtils/target/dev/jediswap_JediSwapV2Account.contract_class.json'
         account_casm_path = 'Jediswap/PoolUtils/target/dev/jediswap_JediSwapV2Account.compiled_contract_class.json'
 
-
-        ###### ACCOUNT #######
-        caller = '0x517ececd29116499f4a1b64b094da79ba08dfd54a3edaa316134c41f8160973'
-
         ###### ERC20 #######
         erc20_class_hash = self._declare_contract(
             path_to_sierra=erc20_sierra_path,
@@ -41,8 +38,8 @@ class JediswapPool:
         token_a_constructor_arguments = [
             self._get_str_to_felt('TOKEN_A'),
             self._get_str_to_felt('TOKEN_A'),
-            f'u256:{2**250}',
-            caller
+            f'u256:{1}',
+            '0x1'
         ]
         token_a_contract, _ = self._deploy_contract(erc20_class_hash, token_a_constructor_arguments)
         self.token_A = token_a_contract
@@ -51,8 +48,8 @@ class JediswapPool:
         token_b_constructor_arguments = [
             self._get_str_to_felt('TOKEN_B'),
             self._get_str_to_felt('TOKEN_B'),
-            f'u256:{2**250}',
-            caller
+            f'u256:{1}',
+            '0x1'
         ]
         token_b_contract, _ = self._deploy_contract(erc20_class_hash, token_b_constructor_arguments)
         self.token_B = token_b_contract
@@ -77,7 +74,7 @@ class JediswapPool:
         )
 
         factory_constructor_arguments = [
-            caller,
+            '0x1',
             pool_class_hash
         ]
 
@@ -339,7 +336,7 @@ Data:                 {0}
     def _mint_tokens(self, recipient, token, amount_low, amount_high):
         return self._tx_invoke(
             token,
-            "transfer",
+            "mint",
             calldata=[recipient, amount_low, amount_high]
         )
     
