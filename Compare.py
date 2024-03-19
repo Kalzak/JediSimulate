@@ -1,6 +1,7 @@
 from Uniswap import UniswapPool
 from Jediswap import JediswapPool
 import json
+from alive_progress import alive_bar
 
 def main():
     # Open the interactions file to get data
@@ -15,27 +16,29 @@ def main():
     # Tracks all unique positions, used for comparisons
     positions = {}
 
-    for block_interactions in all_interactions:
-        for interaction in block_interactions:
-            
-            # Execute the interaction
-            if interaction["type"] == "mint":
-                execute_mint(pool, jedi_pool, interaction, positions)
-            elif interaction["type"] == "burn":
-                execute_burn(pool, jedi_pool, interaction)
-            elif interaction["type"] == "swap":
-                execute_swap(pool, jedi_pool, interaction)
-            elif interaction["type"] == "collect":
-                execute_collect(pool, jedi_pool, interaction)
-            elif interaction["type"] == "flash":
-                print("flashloan encountered")
-                exit(0)    
-            else:
-                print("unknown interaction")
-                exit(0)
+    with alive_bar(len(all_interactions)) as bar:
+        for block_interactions in all_interactions:
+            for interaction in block_interactions:
+                
+                # Execute the interaction
+                if interaction["type"] == "mint":
+                    execute_mint(pool, jedi_pool, interaction, positions)
+                elif interaction["type"] == "burn":
+                    execute_burn(pool, jedi_pool, interaction)
+                elif interaction["type"] == "swap":
+                    execute_swap(pool, jedi_pool, interaction)
+                elif interaction["type"] == "collect":
+                    execute_collect(pool, jedi_pool, interaction)
+                elif interaction["type"] == "flash":
+                    print("flashloan encountered")
+                    exit(0)    
+                else:
+                    print("unknown interaction")
+                    exit(0)
 
-            # All positions should be same for both pools 
-            compare_all_positions(positions, pool, jedi_pool)
+                # All positions should be same for both pools 
+                compare_all_positions(positions, pool, jedi_pool)
+            bar()
 
 def execute_mint(uni_pool, jedi_pool, interaction, positions):
     # Extract out the unique fields that will represent the position

@@ -115,15 +115,15 @@ class JediswapPool:
             path_to_casm=account_casm_path
         )
         self.account_classhash = account_class_hash
-        print(f'''
-Jediswap addresses:
-FACTORY: {factory_contract}
-POOL:    {pool_contract}
-TOKEN_A: {token_a_contract}
-TOKEN_B: {token_b_contract}
-TOKEN_0: {self.token0}
-TOKEN_1: {self.token1}
-''')
+#         print(f'''
+# Jediswap addresses:
+# FACTORY: {factory_contract}
+# POOL:    {pool_contract}
+# TOKEN_A: {token_a_contract}
+# TOKEN_B: {token_b_contract}
+# TOKEN_0: {self.token0}
+# TOKEN_1: {self.token1}
+# ''')
     
     def collect(self, interaction):
         caller, _ = self._register_user(interaction["caller"])
@@ -133,16 +133,16 @@ TOKEN_1: {self.token1}
         amount_0_requested = interaction["data"]["amount_0_requested"]
         amount_1_requested = interaction["data"]["amount_1_requested"]
 
-        print(
-        f'''
-COLLECT JEDI
-Recipient:                 {recipient}
-Tick Lower:                {tick_lower}
-Tick Upper:                {tick_upper}
-Amount 0 Requested:        {amount_0_requested}
-Amount 1 Requested:        {amount_1_requested}
-            '''
-        )
+#         print(
+#         f'''
+# COLLECT JEDI
+# Recipient:                 {recipient}
+# Tick Lower:                {tick_lower}
+# Tick Upper:                {tick_upper}
+# Amount 0 Requested:        {amount_0_requested}
+# Amount 1 Requested:        {amount_1_requested}
+#             '''
+#         )
 
 
         tick_lower_sign = int(tick_lower < 0)
@@ -174,14 +174,14 @@ Amount 1 Requested:        {amount_1_requested}
         tick_upper = interaction["data"]["tick_upper"]
         amount = interaction["data"]["amount"]
 
-        print(
-        f'''
-BURN JEDI
-Tick Lower:    {tick_lower}
-Tick Upper:    {tick_upper}
-Amount:        {amount}
-            '''
-        )
+#         print(
+#         f'''
+# BURN JEDI
+# Tick Lower:    {tick_lower}
+# Tick Upper:    {tick_upper}
+# Amount:        {amount}
+#             '''
+#         )
 
         tick_lower_sign = int(tick_lower < 0)
         tick_upper_sign = int(tick_upper < 0)
@@ -220,18 +220,18 @@ Amount:        {amount}
         amount = interaction["data"]["amount"]
         data = interaction["data"]["data"]
 
-        print(
-        f'''
-MINT JEDI
-Recipient:     {recipient}
-Tick Lower:    {tick_lower}
-Tick Upper:    {tick_upper}
-Amount:        {amount}
-Data:          {0}
-Token0 amount: {t0_amt}
-Token1 amount: {t1_amt}
-            '''
-        )
+#         print(
+#         f'''
+# MINT JEDI
+# Recipient:     {recipient}
+# Tick Lower:    {tick_lower}
+# Tick Upper:    {tick_upper}
+# Amount:        {amount}
+# Data:          {0}
+# Token0 amount: {t0_amt}
+# Token1 amount: {t1_amt}
+#             '''
+#         )
         tick_lower_sign = int(tick_lower < 0)
         tick_upper_sign = int(tick_upper < 0)
 
@@ -276,16 +276,16 @@ Token1 amount: {t1_amt}
         amount_specified_low, amount_specified_high = self._split_u256(abs(amount_specified))
         sqrt_price_limit_x96_low, sqrt_price_limit_x96_high = self._split_u256(abs(sqrt_price_limit_x96))
 
-        print(
-        f'''
-SWAP JEDI
-Recipient:            {recipient}
-Zero for One:         {zero_for_one}
-Amount Specified:     {amount_specified}
-Sqrt Price Limit X96: {sqrt_price_limit_x96}
-Data:                 {0}
-            '''
-        )
+#         print(
+#         f'''
+# SWAP JEDI
+# Recipient:            {recipient}
+# Zero for One:         {zero_for_one}
+# Amount Specified:     {amount_specified}
+# Sqrt Price Limit X96: {sqrt_price_limit_x96}
+# Data:                 {0}
+#             '''
+#         )
 
         # Execute the call
         status = None
@@ -340,7 +340,7 @@ Data:                 {0}
             self.account_classhash, 
             [self.pool, self.token0, self.token1]
         )
-        print("NEW JEDI USER:", new_user)
+        # print("NEW JEDI USER:", new_user)
         self.address_register[address] = new_user
 
         return new_user, tx_hash_obj
@@ -438,19 +438,3 @@ Data:                 {0}
 
     def _split_u256(self, number):
         return (number % 2**128, number // 2**128)
-
-# def load_bytecode(path):
-#     path = get_module_path() + "/" + path
-#     with open(path, "r") as file:
-#         contract_data = json.load(file)
-#         return contract_data["bytecode"]["object"]
-    
-# def load_abi(path):
-#     path = get_module_path() + "/" + path
-#     with open(path, "r") as file:
-#         contract_data = json.load(file)
-#         return contract_data["abi"]
-
-# # Calculates the module path for loading files
-# def get_module_path():
-#     return os.path.dirname(os.path.realpath(__file__))
