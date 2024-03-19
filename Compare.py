@@ -47,7 +47,7 @@ def execute_mint(uni_pool, jedi_pool, interaction, positions):
 
     # Execute the mint on both pools
     uni_status, uni_reason = uni_pool.mint(interaction)
-    jedi_status, jedi_reason, jedi_txhash_obj, old_position = jedi_pool.mint(interaction)
+    jedi_status, jedi_reason, jedi_txhash_obj = jedi_pool.mint(interaction)
     check_execution_status(uni_status, jedi_status, uni_reason, jedi_reason, jedi_txhash_obj)
 
     # Add the position to positions set (if unique)
