@@ -38,7 +38,7 @@ def main():
 
                 # All positions should be same for both pools 
                 compare_all_positions(positions, pool, jedi_pool)
-                bar()
+            bar()
 
 def execute_mint(uni_pool, jedi_pool, interaction, positions):
     # Extract out the unique fields that will represent the position
