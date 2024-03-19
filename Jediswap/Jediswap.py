@@ -318,6 +318,18 @@ Data:                 {0}
                 str(abs(tick_upper)), str(tick_upper_sign)
             ]
         )
+        position_info = [
+            # liquidity: u128
+            int(position_info[0], 16),
+            # fee_growth_inside_0_last_X128: u256
+            (int(position_info[1], 16) + (int(position_info[2], 16)*2**128)),
+            # fee_growth_inside_1_last_X128: u256
+            (int(position_info[3], 16) + (int(position_info[4], 16)*2**128)),
+            # tokens_owed_0: u128
+            int(position_info[5], 16),
+            # tokens_owed_1: u128
+            int(position_info[6], 16)
+        ]
         return position_info
 
     

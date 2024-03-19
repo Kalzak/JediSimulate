@@ -94,6 +94,12 @@ def compare_all_positions(positions, uni_pool, jedi_pool):
             position_key["owner"], position_key["tick_lower"], position_key["tick_upper"]
         )
 
+        if uni_position_data != jedi_position_data:
+            print("########################### INCORRECT POSITION ###########################")
+            print("UNI POSITION: ", uni_position_data)
+            print("JEDI POSITION: ", jedi_position_data)
+            exit()
+
         # Once the jediswap side works, we can actually let the script execute enough to compare positions
         # Until then not much can be done
 
