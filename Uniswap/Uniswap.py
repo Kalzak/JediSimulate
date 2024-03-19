@@ -239,10 +239,14 @@ class UniswapPool:
 
         return status, reason
     
-    def get_position(self, owener, tick_lower, tick_upper):
-        pass
-        # functions.positions.get(owner, tick_lower, tick_upper).call()
-
+    def get_position(self, owner, tick_lower, tick_upper):
+        uni_owner = self.register_user(owner)
+        position_hash = self.w3.solidity_keccak(
+            ["address", "int24", "int24"], 
+            [uni_owner.address, tick_lower, tick_upper]
+        )
+        position_info = self.pool.functions.positions(position_hash).call()
+        return position_info
 
     def _mint_tokens(self, token, recipient, amount):
         tx_hash = token.functions.mint(recipient, amount).transact({"from": self.account.address})
