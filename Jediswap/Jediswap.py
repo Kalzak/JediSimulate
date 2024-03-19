@@ -253,13 +253,7 @@ Token1 amount: {t1_amt}
             reason = str(e)
             status = "reverted"
         
-        position = {
-            "owner": interaction["data"]["recipient"],
-            "tick_lower": tick_lower,
-            "tick_upper": tick_upper
-        }
-        
-        return status, reason, tx_hash, position
+        return status, reason, tx_hash
 
     def swap(self, interaction):
         # Register the caller and recipient
