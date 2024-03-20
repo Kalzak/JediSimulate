@@ -4,6 +4,18 @@ This tool compares the Uniswap protocol on EVM against the Jediswap protocol on 
 
 Built by Nethermind as part of a security and code-review engagement with the Jediswap team. 
 
+## Collecting interactions
+
+The interactions tested on both protocols are extracted directly from Uniswap pools, meaning that all simulations done through this program are done from real on-chain data. It can take a long amount of time to collect this data, access to a personal node or high-throughput RPC url is recommended. The given RPC endpoint must support the `trace_replayTransaction` method.
+
+1. Open `Interactions.py` and edit `POOL_ADDRESS` to your Uniswap pool of choice
+1. Open `Interactions.py` and edit `POOL_DEPLOYMENT_BLOCK` to the block which the pool was deployed
+1. Source `.env` to get your RPC url: `source .env`
+1. Collect interactions: `python3 Interactions.py`
+1. Allow this script to run as long as you like, ctrl+c to halt script
+1. Output is placed in `interactions/interactions.json`
+1. Consider renaming output to another name like `usdc-eth-interactions.json`
+
 ## Dependencies and setup
 
 1. Clone the repository to your local machine
@@ -22,4 +34,4 @@ All of the following interactions should be executed in a different terminal.
 
 1. `bash start_uniswap_anvil.sh`
 1. `bash start_jediswap_katana.sh`
-1. `bash run_simulation.sh`
+1. `source .env; python3 Compare.py <interaction_file_path>`

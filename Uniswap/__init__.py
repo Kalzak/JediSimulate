@@ -1,1 +1,1 @@
-from .Uniswap import UniswapPool
+from .Uniswap import UniswapPool, load_abi

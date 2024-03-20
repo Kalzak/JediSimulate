@@ -1,12 +1,13 @@
 from alive_progress import alive_bar
 import json
+import sys
 
 from Uniswap import UniswapPool
 from Jediswap import JediswapPool
 
-def main():
+def main(interactions_file_path):
     # Open the interactions file to get data
-    with open("interactions.json", "r") as file:
+    with open(interactions_file_path, "r") as file:
         all_interactions = json.load(file)
 
     # Initialize both pools
@@ -30,7 +31,8 @@ def main():
                 sender_address = None
                 recipient_address = None
 
-                # Execute the interaction
+                # Execute the interactionnteractions.json
+
                 if interaction["type"] == "mint":
                     execute_mint(pool, jedi_pool, interaction, positions)
                     sender_address = interaction["caller"]
@@ -155,4 +157,7 @@ def compare_all_positions(positions, uni_pool, jedi_pool):
             exit()
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python3 Compare.py <interactions_file_path>")
+        exit(0)
+    main(sys.argv[1])
