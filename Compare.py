@@ -1,7 +1,8 @@
+from alive_progress import alive_bar
+import json
+
 from Uniswap import UniswapPool
 from Jediswap import JediswapPool
-import json
-from alive_progress import alive_bar
 
 def main():
     # Open the interactions file to get data
@@ -20,25 +21,75 @@ def main():
         for block_interactions in all_interactions:
             for interaction in block_interactions:
                 
+                # Set data arguments to zero because not used currently
+                if "data" in interaction["data"].keys():
+                    interaction["data"]["data"] = "N/A"
+                print(json.dumps(interaction, indent=4))
+
+                # Prepare the token sender and recipient fields
+                sender_address = None
+                recipient_address = None
+
                 # Execute the interaction
                 if interaction["type"] == "mint":
                     execute_mint(pool, jedi_pool, interaction, positions)
+                    sender_address = interaction["caller"]
+                    reciepient_address = interaction["data"]["recipient"]
+
                 elif interaction["type"] == "burn":
                     execute_burn(pool, jedi_pool, interaction)
+                    recipient_address = interaction["caller"]
+
                 elif interaction["type"] == "swap":
                     execute_swap(pool, jedi_pool, interaction)
+                    sender_address = interaction["caller"]
+                    recipient_address = interaction["data"]["recipient"]
+
                 elif interaction["type"] == "collect":
                     execute_collect(pool, jedi_pool, interaction)
+                    recipient_address = interaction["data"]["recipient"]
+
                 elif interaction["type"] == "flash":
                     print("flashloan encountered")
                     exit(0)    
+                
                 else:
                     print("unknown interaction")
                     exit(0)
 
                 # All positions should be same for both pools 
                 compare_all_positions(positions, pool, jedi_pool)
+                
+                # Verify token balances
+                if sender_address:
+                    verify_balances(sender_address, pool, jedi_pool)
+                if recipient_address and sender_address != recipient_address:
+                    verify_balances(recipient_address, pool, jedi_pool)    
+
             bar()
+
+def verify_balances(address, uni_pool, jedi_pool):
+    uni_token0 = uni_pool.get_token0()
+    jedi_token0 = jedi_pool.get_token0()
+    uni_token1 = uni_pool.get_token1()
+    jedi_token1 = jedi_pool.get_token1()
+
+    uni_token0_balance = uni_pool.get_token_balance(uni_token0, address)
+    jedi_token0_balance = jedi_pool.get_token_balance(jedi_token0, address)
+    uni_token1_balance = uni_pool.get_token_balance(uni_token1, address)
+    jedi_token1_balance = jedi_pool.get_token_balance(jedi_token1, address)
+    
+    if uni_token0_balance != jedi_token0_balance:
+        print("########################### INCORRECT BALANCE ###########################")
+        print("UNI BALANCE: ", uni_token0_balance)
+        print("JEDI BALANCE: ", jedi_token0_balance)
+        exit()
+
+    if uni_token1_balance != jedi_token1_balance:
+        print("########################### INCORRECT BALANCE ###########################")
+        print("UNI BALANCE: ", uni_token1_balance)
+        print("JEDI BALANCE: ", jedi_token1_balance)
+        exit()
 
 def execute_mint(uni_pool, jedi_pool, interaction, positions):
     # Extract out the unique fields that will represent the position
@@ -102,10 +153,6 @@ def compare_all_positions(positions, uni_pool, jedi_pool):
             print("UNI POSITION: ", uni_position_data)
             print("JEDI POSITION: ", jedi_position_data)
             exit()
-
-        # Once the jediswap side works, we can actually let the script execute enough to compare positions
-        # Until then not much can be done
-
 
 if __name__ == "__main__":
     main()

@@ -83,15 +83,6 @@ class UniswapPool:
         amount_0_requested = interaction["data"]["amount_0_requested"]
         amount_1_requested = interaction["data"]["amount_1_requested"]
 
-        # print(
-        #     "COLLECT\n",
-        #     "Recipient:", recipient.address, "\n",
-        #     "Tick Lower:", tick_lower, "\n",
-        #     "Tick Upper:", tick_upper, "\n",
-        #     "Amount 0 Requested:", amount_0_requested, "\n",
-        #     "Amount 1 Requested:", amount_1_requested, "\n"
-        # )
-
         # Execute the call
         status = None
         reason = None
@@ -119,13 +110,6 @@ class UniswapPool:
         tick_lower = interaction["data"]["tick_lower"]
         tick_upper = interaction["data"]["tick_upper"]
         amount = interaction["data"]["amount"]
-
-        # print(
-        #     "BURN\n",
-        #     "Tick Lower:", tick_lower, "\n",
-        #     "Tick Upper:", tick_upper, "\n",
-        #     "Amount:", amount, "\n"
-        # )
 
         # Execute the call
         status = None
@@ -161,17 +145,6 @@ class UniswapPool:
         tick_upper = interaction["data"]["tick_upper"]
         amount = interaction["data"]["amount"]
         data = interaction["data"]["data"]
-
-        # print(
-        #     "MINT\n",
-        #     "Recipient:", recipient.address, "\n",
-        #     "Tick Lower:", tick_lower, "\n",
-        #     "Tick Upper:", tick_upper, "\n",
-        #     "Amount:", amount, "\n",
-        #     "Data:", self.w3.to_bytes(0), "\n",
-        #     "Token0 Amount:", t0_amt, "\n",
-        #     "Token1 Amount:", t1_amt, "\n"
-        # )
 
         # Execute the call
         status = None
@@ -211,15 +184,6 @@ class UniswapPool:
         sqrt_price_limit_x96 = interaction["data"]["sqrt_price_limit_x96"]
         data = self.w3.to_bytes(0)
 
-        # print(
-        #     "SWAP\n",
-        #     "Recipient:", recipient.address, "\n",
-        #     "Zero For One:", zero_for_one, "\n",
-        #     "Amount Specified:", amount_specified, "\n",
-        #     "Sqrt Price Limit X96:", sqrt_price_limit_x96, "\n",
-        #     "Data:", data, "\n"
-        # )
-
         # Execute the call
         status = None
         reason = None
@@ -247,6 +211,22 @@ class UniswapPool:
         )
         position_info = self.pool.functions.positions(position_hash).call()
         return position_info
+
+    def get_token_balance(self, token_addr, address):
+        anvil_addr = self.register_user(address).address
+        if token_addr == self.token0.address:
+            return self.token0.functions.balanceOf(anvil_addr).call()
+        elif token_addr == self.token1.address:
+            return self.token1.functions.balanceOf(anvil_addr).call()
+        else:
+            print("get_token_balance: invalid token address")
+
+
+    def get_token0(self):
+        return self.token0.address
+    
+    def get_token1(self):
+        return self.token1.address
 
     def _mint_tokens(self, token, recipient, amount):
         tx_hash = token.functions.mint(recipient, amount).transact({"from": self.account.address})

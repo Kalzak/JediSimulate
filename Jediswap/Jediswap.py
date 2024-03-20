@@ -2,9 +2,6 @@
 import subprocess
 import re
 
-# jedi_caller = '0x517ececd29116499f4a1b64b094da79ba08dfd54a3edaa316134c41f8160973'
-
-
 class JediswapPool:
 
     def __init__(self, init_interaction):
@@ -115,16 +112,7 @@ class JediswapPool:
             path_to_casm=account_casm_path
         )
         self.account_classhash = account_class_hash
-#         print(f'''
-# Jediswap addresses:
-# FACTORY: {factory_contract}
-# POOL:    {pool_contract}
-# TOKEN_A: {token_a_contract}
-# TOKEN_B: {token_b_contract}
-# TOKEN_0: {self.token0}
-# TOKEN_1: {self.token1}
-# ''')
-    
+
     def collect(self, interaction):
         caller, _ = self._register_user(interaction["caller"])
         recipient, _ = self._register_user(interaction["data"]["recipient"])
@@ -132,18 +120,6 @@ class JediswapPool:
         tick_upper = interaction["data"]["tick_upper"]
         amount_0_requested = interaction["data"]["amount_0_requested"]
         amount_1_requested = interaction["data"]["amount_1_requested"]
-
-#         print(
-#         f'''
-# COLLECT JEDI
-# Recipient:                 {recipient}
-# Tick Lower:                {tick_lower}
-# Tick Upper:                {tick_upper}
-# Amount 0 Requested:        {amount_0_requested}
-# Amount 1 Requested:        {amount_1_requested}
-#             '''
-#         )
-
 
         tick_lower_sign = int(tick_lower < 0)
         tick_upper_sign = int(tick_upper < 0)
@@ -173,15 +149,6 @@ class JediswapPool:
         tick_lower = interaction["data"]["tick_lower"]
         tick_upper = interaction["data"]["tick_upper"]
         amount = interaction["data"]["amount"]
-
-#         print(
-#         f'''
-# BURN JEDI
-# Tick Lower:    {tick_lower}
-# Tick Upper:    {tick_upper}
-# Amount:        {amount}
-#             '''
-#         )
 
         tick_lower_sign = int(tick_lower < 0)
         tick_upper_sign = int(tick_upper < 0)
@@ -220,18 +187,6 @@ class JediswapPool:
         amount = interaction["data"]["amount"]
         data = interaction["data"]["data"]
 
-#         print(
-#         f'''
-# MINT JEDI
-# Recipient:     {recipient}
-# Tick Lower:    {tick_lower}
-# Tick Upper:    {tick_upper}
-# Amount:        {amount}
-# Data:          {0}
-# Token0 amount: {t0_amt}
-# Token1 amount: {t1_amt}
-#             '''
-#         )
         tick_lower_sign = int(tick_lower < 0)
         tick_upper_sign = int(tick_upper < 0)
 
@@ -275,17 +230,6 @@ class JediswapPool:
         amount_specified_sign = int(amount_specified < 0)
         amount_specified_low, amount_specified_high = self._split_u256(abs(amount_specified))
         sqrt_price_limit_x96_low, sqrt_price_limit_x96_high = self._split_u256(abs(sqrt_price_limit_x96))
-
-#         print(
-#         f'''
-# SWAP JEDI
-# Recipient:            {recipient}
-# Zero for One:         {zero_for_one}
-# Amount Specified:     {amount_specified}
-# Sqrt Price Limit X96: {sqrt_price_limit_x96}
-# Data:                 {0}
-#             '''
-#         )
 
         # Execute the call
         status = None
@@ -331,7 +275,25 @@ class JediswapPool:
             int(position_info[6], 16)
         ]
         return position_info
+    
+    def get_token_balance(self, token_addr, address):
+        if token_addr != self.token0 and token_addr != self.token1:
+            print("get_token_balance: invalid token address")
+            exit(0) 
 
+        jedi_address = self.address_register[str(address)]
+        balance = self._tx_call(
+            to=token_addr,
+            func='balance_of',
+            calldata=[str(jedi_address)]
+        )
+        return self._u256_to_int(balance[0], balance[1])
+    
+    def get_token0(self):
+        return self.token0
+    
+    def get_token1(self):
+        return self.token1
     
     def _register_user(self, address):
         if address in self.address_register.keys():
@@ -340,7 +302,6 @@ class JediswapPool:
             self.account_classhash, 
             [self.pool, self.token0, self.token1]
         )
-        # print("NEW JEDI USER:", new_user)
         self.address_register[address] = new_user
 
         return new_user, tx_hash_obj
@@ -438,3 +399,6 @@ class JediswapPool:
 
     def _split_u256(self, number):
         return (number % 2**128, number // 2**128)
+    
+    def _u256_to_int(self, lower, upper):
+        return (int(lower, 16) + (int(upper, 16) << 128))
