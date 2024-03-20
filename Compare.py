@@ -36,7 +36,7 @@ def main(interactions_file_path):
                 if interaction["type"] == "mint":
                     execute_mint(pool, jedi_pool, interaction, positions)
                     sender_address = interaction["caller"]
-                    reciepient_address = interaction["data"]["recipient"]
+                    recipient_address = interaction["data"]["recipient"]
 
                 elif interaction["type"] == "burn":
                     execute_burn(pool, jedi_pool, interaction)
