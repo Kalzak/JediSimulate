@@ -17,6 +17,8 @@ def main(interactions_file_path):
     
     # Tracks all unique positions, used for comparisons
     positions = {}
+    counter = 0
+    interval = 100
 
     with alive_bar(len(all_interactions)) as bar:
         for block_interactions in all_interactions:
@@ -59,14 +61,20 @@ def main(interactions_file_path):
                     print("unknown interaction")
                     exit(0)
 
-                # All positions should be same for both pools 
-                compare_all_positions(positions, pool, jedi_pool)
+                if counter % interval == 0:
+                    print("======== COMPARISON CHECKS ======== ")
+                    # All positions should be same for both pools 
+                    compare_pool_data_and_positions(positions, pool, jedi_pool)
+                    print("============ CHECKS OK ============ ")
+
                 
                 # Verify token balances
                 if sender_address:
                     verify_balances(sender_address, pool, jedi_pool)
                 if recipient_address and sender_address != recipient_address:
                     verify_balances(recipient_address, pool, jedi_pool)    
+                
+            counter += 1
 
             bar()
 
@@ -139,7 +147,49 @@ def add_to_positions(positions, position):
         positions[hashed_position] = position
 
 # Checks for each position that they are equal across both pools
-def compare_all_positions(positions, uni_pool, jedi_pool):
+def compare_pool_data_and_positions(positions, uni_pool, jedi_pool):
+    passed = True
+    uni_sqrt_price = uni_pool.get_sqrt_price_X96()
+    jedi_sqrt_price = jedi_pool.get_sqrt_price_X96()
+    if jedi_sqrt_price != uni_sqrt_price:
+        passed = False
+        print("INCORRECT SQRT PRICE")
+        print("UNISWAP SQRT PRICE:", uni_sqrt_price)
+        print("JEDISWAP SQRT PRICE:", jedi_sqrt_price)
+
+    uni_tick = uni_pool.get_tick()
+    jedi_tick = jedi_pool.get_tick()
+    if uni_tick != jedi_tick:
+        passed = False
+        print("INCORRECT TICK")
+        print("UNISWAP TICK:", uni_tick)
+        print("JEDISWAP TICK:", jedi_tick)
+
+    uni_fee0 = uni_pool.get_fee_growth_global_0_X128()
+    jedi_fee0 = jedi_pool.get_fee_growth_global_0_X128()
+    if uni_fee0 != jedi_fee0:
+        passed = False
+        print("INCORRECT FEE GROWTH 0")
+        print("UNISWAP FEE GROWTH 0:", uni_fee0)
+        print("JEDISWAP FEE GROWTH 0:", jedi_fee0)
+
+    uni_fee1 = uni_pool.get_fee_growth_global_1_X128()
+    jedi_fee1 = jedi_pool.get_fee_growth_global_1_X128()
+    if uni_fee1 != jedi_fee1:
+        passed = False
+        print("INCORRECT FEE GROWTH 1")
+        print("UNISWAP FEE GROWTH 1:", uni_fee1)
+        print("JEDISWAP FEE GROWTH 1:", jedi_fee1)
+
+    uni_liquidity = uni_pool.get_liquidity()
+    jedi_liquidity = jedi_pool.get_liquidity()
+    if uni_liquidity != jedi_liquidity:
+        passed = False
+        print("INCORRECT LIQUIDITY")
+        print("UNISWAP LIQUIDITY:", uni_liquidity)
+        print("JEDISWAP LIQUIDITY:", jedi_liquidity)
+    
+    # Positions check
     for position_dict_key in positions.keys():
         position_key = positions[position_dict_key]
 
@@ -151,10 +201,14 @@ def compare_all_positions(positions, uni_pool, jedi_pool):
         )
 
         if uni_position_data != jedi_position_data:
+            passed = False
             print("########################### INCORRECT POSITION ###########################")
             print("UNI POSITION: ", uni_position_data)
             print("JEDI POSITION: ", jedi_position_data)
-            exit()
+    
+    if not passed:
+        exit()
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
