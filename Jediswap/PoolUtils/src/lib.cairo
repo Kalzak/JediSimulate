@@ -1,2 +1,2 @@
-mod jediswap_account;
+mod jediswap;
 mod erc20;

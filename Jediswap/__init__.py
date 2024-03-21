@@ -1,1 +1,1 @@
-from .Jediswap import JediswapPool
+from .JediSwapFuzz import JSF
