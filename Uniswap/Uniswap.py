@@ -211,6 +211,26 @@ class UniswapPool:
         )
         position_info = self.pool.functions.positions(position_hash).call()
         return position_info
+    
+    def get_tick(self):
+        slot0 = self.pool.functions.slot0().call()
+        return slot0[1]
+
+    def get_sqrt_price_X96(self):
+        slot0 = self.pool.functions.slot0().call()
+        return slot0[0]
+    
+    def get_fee_growth_global_0_X128(self):
+        fee_growth_global_0_X128 = self.pool.functions.feeGrowthGlobal0X128().call()
+        return fee_growth_global_0_X128
+    
+    def get_fee_growth_global_1_X128(self):
+        fee_growth_global_1_X128 = self.pool.functions.feeGrowthGlobal1X128().call()
+        return fee_growth_global_1_X128
+    
+    def get_liquidity(self):
+        liquidity = self.pool.functions.liquidity().call()
+        return liquidity
 
     def get_token_balance(self, token_addr, address):
         anvil_addr = self.register_user(address).address

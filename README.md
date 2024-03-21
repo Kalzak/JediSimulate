@@ -13,7 +13,7 @@ Built by Nethermind as part of a security and code-review engagement with the Je
 1. Install python dependencies: `pip install --requirement pip_requirements.txt`
 1. Install Foundry, [link to installation](https://github.com/foundry-rs/)
 1. Install Katana, [link to installation](https://book.starknet.io/ch02-05-katana.html#getting-started-with-katana) (version `katana 0.6.0-alpha.6`)
-1. Install Starkli, [link to installation](https://github.com/xJonathanLEI/starkli)
+1. Install Starkli, [link to installation](https://github.com/xJonathanLEI/starkli) (try version `0.1.20`)
 1. Install Scarb via `asdf`, [link to installation](https://docs.swmansion.com/scarb/download.html#install-via-asdf), set version to `2.4.3` with `asdf local scarb 2.4.3`
 1. Enter dir `Uniswap/PoolUtils` and run `forge build` to compile Uniswap and helper contracts
 1. Enter dir `Jediswap/PoolUtils` and run `scarb build` to compile Jediswap and helper contracts

@@ -276,6 +276,51 @@ class JediswapPool:
         ]
         return position_info
     
+    def get_sqrt_price_X96(self):
+        sqrt_price_X96_data = self._tx_call(
+            to=self.pool,
+            func='get_sqrt_price_X96',
+            calldata=[]
+        )
+        sqrt_price_X96_single_value = int(sqrt_price_X96_data[0], 16) + (int(sqrt_price_X96_data[1], 16)*2**128)
+        return sqrt_price_X96_single_value
+    
+    def get_tick(self):
+        tick_data = self._tx_call(
+            to=self.pool,
+            func='get_tick',
+            calldata=[]
+        )
+        tick_sign = 1 if int(tick_data[1], 16) == 0 else -1
+        tick = int(tick_data[0], 16) * tick_sign
+        return tick
+    
+    def get_fee_growth_global_0_X128(self):
+        fee_growth_global_0_X128_data = self._tx_call(
+            to=self.pool,
+            func='get_fee_growth_global_0_X128',
+            calldata=[]
+        )
+        fee_growth_global_0_X128 = int(fee_growth_global_0_X128_data[0], 16) + (int(fee_growth_global_0_X128_data[1], 16)*2**128)
+        return fee_growth_global_0_X128
+    
+    def get_fee_growth_global_1_X128(self):
+        fee_growth_global_1_X128_data = self._tx_call(
+            to=self.pool,
+            func='get_fee_growth_global_1_X128',
+            calldata=[]
+        )
+        fee_growth_global_1_X128 = int(fee_growth_global_1_X128_data[0], 16) + (int(fee_growth_global_1_X128_data[1], 16)*2**128)
+        return fee_growth_global_1_X128
+
+    def get_liquidity(self):
+        liquidity = self._tx_call(
+            to=self.pool,
+            func='get_liquidity',
+            calldata=[]
+        )
+        return int(liquidity[0], 16)
+    
     def get_token_balance(self, token_addr, address):
         if token_addr != self.token0 and token_addr != self.token1:
             print("get_token_balance: invalid token address")
