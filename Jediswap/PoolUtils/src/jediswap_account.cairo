@@ -2,7 +2,7 @@
 // @notice Router for stateless execution of swaps against JediSwap V2
 
 use starknet::ContractAddress;
-use yas_core::numbers::signed_integer::{i32::i32, i128::i128, i256::i256};
+use jediswap_v2_core::libraries::signed_integers::{i32::i32, i128::i128, i256::i256};
 // use jediswap_v2_core::jediswap_v2_pool::JediSwapV2Pool;
 // use jediswap;
 
@@ -84,12 +84,12 @@ mod JediSwapV2Account {
         IJediSwapV2FactoryDispatcher, IJediSwapV2FactoryDispatcherTrait
     };
 
-    use yas_core::numbers::signed_integer::{
-        i32::i32, i64::i64, i128::{i128, u128Intoi128}, i256::{i256, i256TryIntou256},
+    use jediswap_v2_core::libraries::signed_integers::{
+        i32::i32, i128::i128, i256::i256,
         integer_trait::IntegerTrait
     };
-    use yas_core::utils::math_utils::FullMath::mul_div;
-    use yas_core::utils::math_utils::BitShift::BitShiftTrait;
+    use jediswap_v2_core::libraries::full_math::mul_div;
+    use jediswap_v2_core::libraries::bitshift_trait::BitShiftTrait;
 
     // use jediswap_v2_core::jediswap_v2_pool;
 
@@ -114,7 +114,7 @@ mod JediSwapV2Account {
         self.token1.write(token1);
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl JediSwapV2Account of super::IJediSwapV2Account<ContractState> {
         fn get_pool(self: @ContractState) -> ContractAddress {
             self.pool.read()

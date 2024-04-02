@@ -7,30 +7,23 @@ version = "0.1.0"
 dependencies = [
  "jediswap_v2_core",
  "openzeppelin",
- "yas_core",
 ]
 
 [[package]]
 name = "jediswap_v2_core"
 version = "0.0.1"
-source = "git+https://github.com/jediswaplabs/JediSwap-v2-core.git?branch=5-bug-fixes#3ec200697bedd154cc105b008d5bf252379fb6e5"
+source = "git+https://github.com/jediswaplabs/JediSwap-v2-core.git?branch=5-bug-fixes#cebd3d822e66516c53a9f6cfafcaca17ae2a588f"
 dependencies = [
  "openzeppelin",
  "snforge_std",
- "yas_core",
 ]
 
 [[package]]
 name = "openzeppelin"
-version = "0.8.0"
-source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.8.0#6ab91b5cf57d6a7d02f2d5c5abfc7b5712bc8e47"
+version = "0.10.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.10.0#d77082732daab2690ba50742ea41080eb23299d3"
 
 [[package]]
 name = "snforge_std"
-version = "0.16.0"
-source = "git+https://github.com/foundry-rs/starknet-foundry.git?tag=v0.16.0#f58e0ab42b6095b7d0cb841ede595aecbc9cb45d"
-
-[[package]]
-name = "yas_core"
-version = "0.1.0"
-source = "git+https://github.com/lambdaclass/yet-another-swap.git#f3ee03a3564a37698e9589f564ac63aa59dab283"
+version = "0.20.1"
+source = "git+https://github.com/foundry-rs/starknet-foundry.git?tag=v0.20.1#fea2db8f2b20148cc15ee34b08de12028eb42942"

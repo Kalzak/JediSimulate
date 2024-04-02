@@ -16,7 +16,6 @@ build-external-contracts = [
 ]
 
 [dependencies]
-starknet = "2.4.3"
-yas_core = { git = "https://github.com/lambdaclass/yet-another-swap.git" }
-openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.8.0" }
+starknet = "2.6.3"
+openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.10.0" }
 jediswap_v2_core = { git = "https://github.com/jediswaplabs/JediSwap-v2-core.git", branch = "5-bug-fixes" }

@@ -380,6 +380,7 @@ class JediswapPool:
                 ''', error)
             exit(0)
         tx_output_data = error.split()
+        print(tx_output_data)
         tx_hash = tx_output_data[tx_output_data.index('transaction:') + 1]
         tx_hash_obj = {
             "tx_command": ["deploy", class_hash, *constructor_arguments],

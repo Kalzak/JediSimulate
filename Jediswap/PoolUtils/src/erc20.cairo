@@ -18,13 +18,13 @@ use openzeppelin::token::erc20::ERC20Component;
     impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
     #[abi(embed_v0)]
     impl ERC20MetadataImpl = ERC20Component::ERC20MetadataImpl<ContractState>;
-    #[abi(embed_v0)]
-    impl SafeAllowanceImpl = ERC20Component::SafeAllowanceImpl<ContractState>;
+    // #[abi(embed_v0)]
+    // impl SafeAllowanceImpl = ERC20Component::SafeAllowanceImpl<ContractState>;
     #[abi(embed_v0)]
     impl ERC20CamelOnlyImpl = ERC20Component::ERC20CamelOnlyImpl<ContractState>;
-    #[abi(embed_v0)]
-    impl SafeAllowanceCamelImpl =
-        ERC20Component::SafeAllowanceCamelImpl<ContractState>;
+    // #[abi(embed_v0)]
+    // impl SafeAllowanceCamelImpl =
+    //     ERC20Component::SafeAllowanceCamelImpl<ContractState>;
     impl InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
     #[storage]
@@ -50,7 +50,11 @@ use openzeppelin::token::erc20::ERC20Component;
         fixed_supply: u256,
         recipient: ContractAddress
     ) {
-        self.erc20.initializer(name, symbol);
+        let mut name_array = "";
+        name_array.append_word(name, 7);
+        let mut symbol_array = "";
+        symbol_array.append_word(symbol, 7);
+        self.erc20.initializer(name_array, symbol_array);
     }
 
     #[external(v0)]
