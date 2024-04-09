@@ -1,6 +1,14 @@
 
 import subprocess
 import re
+from starknet_py.net.account.account import Account
+from starknet_py.net.full_node_client import FullNodeClient
+from starknet_py.net.signer.stark_curve_signer import KeyPair
+from starknet_py.cairo.felt import encode_shortstring
+from starknet_py.common import create_casm_class, create_sierra_compiled_contract
+from starknet_py.hash.casm_class_hash import compute_casm_class_hash
+from starknet_py.contract import Contract
+from starknet_py.net.udc_deployer.deployer import Deployer
 
 class JediswapPool:
 
@@ -15,6 +23,17 @@ class JediswapPool:
         self.factory = None
         self.token_A = None
         self.token_B = None
+        self.account_sierra_path = None
+
+        self.client = FullNodeClient(node_url="http://0.0.0.0:5050")
+        self.account = Account(
+            client=self.client,
+            address=0x733f6b834ece1b8b0427c12e1d3a5f38110156752e9c1bb6637852dbf167549,
+            key_pair=KeyPair(
+                private_key=0x259d4fd8f1a476f2b8f39e18e5522f85, 
+                public_key=0x20cdbc421beaf586bed117b29b2d4644d04ebcc73cba1f97a27f625929b879d),
+            chain=0x534e5f5345504f4c4941, # Spolia chain id
+        )
 
         factory_sierra_path = 'Jediswap/PoolUtils/target/dev/jediswap_JediSwapV2Factory.contract_class.json'
         factory_casm_path = 'Jediswap/PoolUtils/target/dev/jediswap_JediSwapV2Factory.compiled_contract_class.json'
@@ -25,38 +44,42 @@ class JediswapPool:
         account_sierra_path = 'Jediswap/PoolUtils/target/dev/jediswap_JediSwapV2Account.contract_class.json'
         account_casm_path = 'Jediswap/PoolUtils/target/dev/jediswap_JediSwapV2Account.compiled_contract_class.json'
 
+        self.account_sierra_path = account_sierra_path
+
         ###### ERC20 #######
         erc20_class_hash = self._declare_contract(
             path_to_sierra=erc20_sierra_path,
             path_to_casm=erc20_casm_path
         )
+        # erc20_class_hash = "0x02d3b48df6a7d005ecb44ba1a811bca2402a469d63e65c6b8bd1ea926d5b26a3"
 
         ###### TOKEN_A DEPLOYEMENT
         token_a_constructor_arguments = [
-            self._get_str_to_felt('TOKEN_A'),
-            self._get_str_to_felt('TOKEN_A'),
-            f'u256:{1}',
+            encode_shortstring('TOKEN_A'),
+            encode_shortstring('TOKEN_A'),
+            1,
             '0x1'
         ]
-        token_a_contract, _ = self._deploy_contract(erc20_class_hash, token_a_constructor_arguments)
+        token_a_contract = self._deploy_contract(erc20_sierra_path, erc20_class_hash, token_a_constructor_arguments, 6)
         self.token_A = token_a_contract
 
         ####### TOKEN_B DEPLOYEMENT
         token_b_constructor_arguments = [
-            self._get_str_to_felt('TOKEN_B'),
-            self._get_str_to_felt('TOKEN_B'),
-            f'u256:{1}',
+            encode_shortstring('TOKEN_B'),
+            encode_shortstring('TOKEN_B'),
+            1,
             '0x1'
         ]
-        token_b_contract, _ = self._deploy_contract(erc20_class_hash, token_b_constructor_arguments)
+        token_b_contract = self._deploy_contract(erc20_sierra_path, erc20_class_hash, token_b_constructor_arguments, 6)
         self.token_B = token_b_contract
 
-        if int(token_a_contract, 16) < int(token_b_contract, 16):
+        if token_a_contract < token_b_contract:
             self.token0 = token_a_contract
             self.token1 = token_b_contract
         else:
             self.token0 = token_b_contract
             self.token1 = token_a_contract
+        print(f"Tokens: {self.token0}, {self.token1}")
 
         ###### POOL #######
         pool_class_hash = self._declare_contract(
@@ -75,7 +98,7 @@ class JediswapPool:
             pool_class_hash
         ]
 
-        factory_contract, _ = self._deploy_contract(factory_class_hash, factory_constructor_arguments)
+        factory_contract = self._deploy_contract(factory_sierra_path, factory_class_hash, factory_constructor_arguments, 6)
         self.factory = factory_contract
 
         ##############################
@@ -99,12 +122,10 @@ class JediswapPool:
 
         sqrt_arg = init_interaction["data"]["initialize_data"]["sqrt_price_x96"]
 
-        sqrt_low, sqrt_high = self._split_u256(sqrt_arg)
-
         self._tx_invoke(
             to=pool_contract,
             func='initialize',
-            calldata=[f'{sqrt_low}', f'{sqrt_high}']
+            calldata=[sqrt_arg]
         )
 
         account_class_hash = self._declare_contract(
@@ -114,72 +135,69 @@ class JediswapPool:
         self.account_classhash = account_class_hash
 
     def collect(self, interaction):
-        caller, _ = self._register_user(interaction["caller"])
-        recipient, _ = self._register_user(interaction["data"]["recipient"])
+        caller = self._register_user(interaction["caller"])
+        recipient = self._register_user(interaction["data"]["recipient"])
         tick_lower = interaction["data"]["tick_lower"]
         tick_upper = interaction["data"]["tick_upper"]
         amount_0_requested = interaction["data"]["amount_0_requested"]
         amount_1_requested = interaction["data"]["amount_1_requested"]
 
-        tick_lower_sign = int(tick_lower < 0)
-        tick_upper_sign = int(tick_upper < 0)
+        tick_lower_sign = tick_lower < 0
+        tick_upper_sign = tick_upper < 0
 
         # Execute the call
         status = None
         reason = None
+        calldata = [recipient, {"mag": abs(tick_lower), "sign": tick_lower_sign}, {"mag": abs(tick_upper), "sign": tick_upper_sign}, amount_0_requested, amount_1_requested]
 
         try:
-            tx_hash = self._tx_invoke(
+            self._tx_invoke(
                 caller,
                 "collect",
-                [
-                    str(recipient), str(abs(tick_lower)), str(tick_lower_sign), str(abs(tick_upper)), str(tick_upper_sign), 
-                    str(amount_0_requested), str(amount_1_requested)
-                ]
+                calldata
             )
             status = "success"
         except Exception as e:
             reason = str(e)
             status = "reverted"
         
-        return status, reason, tx_hash
+        return status, reason
 
     def burn(self, interaction):
-        caller, _ = self._register_user(interaction["caller"])
+        caller = self._register_user(interaction["caller"])
         tick_lower = interaction["data"]["tick_lower"]
         tick_upper = interaction["data"]["tick_upper"]
         amount = interaction["data"]["amount"]
 
-        tick_lower_sign = int(tick_lower < 0)
-        tick_upper_sign = int(tick_upper < 0)
+        tick_lower_sign = tick_lower < 0
+        tick_upper_sign = tick_upper < 0
 
         # Execute the call
         status = None
         reason = None
+        calldata = [{"mag": abs(tick_lower), "sign": tick_lower_sign}, {"mag": abs(tick_upper), "sign": tick_upper_sign}, amount]
         try:
-            tx_hash = self._tx_invoke(
+            self._tx_invoke(
                 caller,
                 "burn",
-                [str(abs(tick_lower)), str(tick_lower_sign), str(abs(tick_upper)), str(tick_upper_sign), str(amount)]
+                calldata
             )
             status = "success"
         except Exception as e:
             reason = str(e)
             status = "reverted"
         
-        return status, reason, tx_hash
+        return status, reason
 
     def mint(self, interaction):
-        caller, _ = self._register_user(interaction["caller"])
-        recipient, _ = self._register_user(interaction["data"]["recipient"])
+        caller = self._register_user(interaction["caller"])
+        recipient = self._register_user(interaction["data"]["recipient"])
 
         # Mint the necessary amount of tokens for liquidity provision
         t0_amt = interaction["other"]["amount0"]
         t1_amt = interaction["other"]["amount1"]
-        t0_amt_low, t0_amt_high = self._split_u256(t0_amt)
-        t1_amt_low, t1_amt_high = self._split_u256(t1_amt)
-        self._mint_tokens(caller, self.token0, t0_amt_low, t0_amt_high)
-        self._mint_tokens(caller, self.token1, t1_amt_low, t1_amt_high)
+        self._mint_tokens(caller, self.token0, t0_amt)
+        self._mint_tokens(caller, self.token1, t1_amt)
 
         # Extract data to more readable variables
         tick_lower = interaction["data"]["tick_lower"]
@@ -187,92 +205,82 @@ class JediswapPool:
         amount = interaction["data"]["amount"]
         data = interaction["data"]["data"]
 
-        tick_lower_sign = int(tick_lower < 0)
-        tick_upper_sign = int(tick_upper < 0)
+        tick_lower_sign = tick_lower < 0
+        tick_upper_sign = tick_upper < 0
 
         # Execute the call
         status = None
         reason = None
+        calldata = [recipient, {"mag": abs(tick_lower), "sign": tick_lower_sign}, {"mag": abs(tick_upper), "sign": tick_upper_sign}, amount, []]
         try:
-            tx_hash = self._tx_invoke(
+            self._tx_invoke(
                 caller,
                 "mint",
-                [str(recipient), str(abs(tick_lower)), str(tick_lower_sign), 
-                str(abs(tick_upper)), str(tick_upper_sign), str(amount), str(0)]
+                calldata
             )
             status = "success"
         except Exception as e:
             reason = str(e)
             status = "reverted"
         
-        return status, reason, tx_hash
+        return status, reason
 
     def swap(self, interaction):
         # Register the caller and recipient
-        caller, _ = self._register_user(interaction["caller"])
-        recipient, _ = self._register_user(interaction["data"]["recipient"])
+        caller = self._register_user(interaction["caller"])
+        recipient = self._register_user(interaction["data"]["recipient"])
 
         # Mint the necessary amount of tokens for swap
         t0_amt = interaction["other"]["amount0"]
         t1_amt = interaction["other"]["amount1"]
         if t0_amt > 0:
-            t0_amt_low, t0_amt_high = self._split_u256(t0_amt)
-            self._mint_tokens(caller, self.token0, t0_amt_low, t0_amt_high)
+            self._mint_tokens(caller, self.token0, t0_amt)
 
         if t1_amt > 0:
-            t1_amt_low, t1_amt_high = self._split_u256(t1_amt)
-            self._mint_tokens(caller, self.token1, t1_amt_low, t1_amt_high)
+            self._mint_tokens(caller, self.token1, t1_amt)
 
         zero_for_one = interaction["data"]["zero_for_one"]
         amount_specified = interaction["data"]["amount_specified"]
         sqrt_price_limit_x96 = interaction["data"]["sqrt_price_limit_x96"]
-        data = 0
-        amount_specified_sign = int(amount_specified < 0)
-        amount_specified_low, amount_specified_high = self._split_u256(abs(amount_specified))
-        sqrt_price_limit_x96_low, sqrt_price_limit_x96_high = self._split_u256(abs(sqrt_price_limit_x96))
+        amount_specified_sign = amount_specified < 0
 
         # Execute the call
         status = None
         reason = None
+        calldata = [recipient, zero_for_one, {"mag": abs(amount_specified), "sign": amount_specified_sign}, sqrt_price_limit_x96, []]
         try:
-            tx_hash = self._tx_invoke(
+            self._tx_invoke(
                 caller,
                 "swap",
-                [str(recipient), str(int(zero_for_one)), str(amount_specified_low), str(amount_specified_high), str(amount_specified_sign),
-                str(sqrt_price_limit_x96_low), str(sqrt_price_limit_x96_high), str(data)
-                ]
+                calldata
             )
             status = "success"
         except Exception as e:
             reason = str(e)
             status = "reverted"
         
-        return status, reason, tx_hash
+        return status, reason
     
     def get_position(self, owner, tick_lower, tick_upper):
         jedi_owner = self.address_register[str(owner)]
-        tick_lower_sign = int(tick_lower < 0)
-        tick_upper_sign = int(tick_upper < 0)
+        tick_lower_sign = tick_lower < 0
+        tick_upper_sign = tick_upper < 0
         position_info = self._tx_call(
             to=self.pool,
             func='get_position_info',
-            calldata=[
-                str(jedi_owner),
-                str(abs(tick_lower)), str(tick_lower_sign),
-                str(abs(tick_upper)), str(tick_upper_sign)
-            ]
+            calldata=[{"owner": jedi_owner, "tick_lower": {"mag": abs(tick_lower), "sign": tick_lower_sign}, "tick_upper": {"mag": abs(tick_upper),  "sign": tick_upper_sign}}]
         )
         position_info = [
             # liquidity: u128
-            int(position_info[0], 16),
+            position_info[0]['liquidity'],
             # fee_growth_inside_0_last_X128: u256
-            (int(position_info[1], 16) + (int(position_info[2], 16)*2**128)),
+            position_info[0]['fee_growth_inside_0_last_X128'],
             # fee_growth_inside_1_last_X128: u256
-            (int(position_info[3], 16) + (int(position_info[4], 16)*2**128)),
+            position_info[0]['fee_growth_inside_1_last_X128'],
             # tokens_owed_0: u128
-            int(position_info[5], 16),
+            position_info[0]['tokens_owed_0'],
             # tokens_owed_1: u128
-            int(position_info[6], 16)
+            position_info[0]['tokens_owed_1'],
         ]
         return position_info
     
@@ -282,8 +290,7 @@ class JediswapPool:
             func='get_sqrt_price_X96',
             calldata=[]
         )
-        sqrt_price_X96_single_value = int(sqrt_price_X96_data[0], 16) + (int(sqrt_price_X96_data[1], 16)*2**128)
-        return sqrt_price_X96_single_value
+        return sqrt_price_X96_data[0]
     
     def get_tick(self):
         tick_data = self._tx_call(
@@ -291,8 +298,9 @@ class JediswapPool:
             func='get_tick',
             calldata=[]
         )
-        tick_sign = 1 if int(tick_data[1], 16) == 0 else -1
-        tick = int(tick_data[0], 16) * tick_sign
+        # print(f"tick data - {tick_data}")
+        tick_sign = -1 if tick_data[0]['sign'] else 1
+        tick = tick_data[0]['mag'] * tick_sign
         return tick
     
     def get_fee_growth_global_0_X128(self):
@@ -301,8 +309,8 @@ class JediswapPool:
             func='get_fee_growth_global_0_X128',
             calldata=[]
         )
-        fee_growth_global_0_X128 = int(fee_growth_global_0_X128_data[0], 16) + (int(fee_growth_global_0_X128_data[1], 16)*2**128)
-        return fee_growth_global_0_X128
+        # fee_growth_global_0_X128 = int(fee_growth_global_0_X128_data[0], 16) + (int(fee_growth_global_0_X128_data[1], 16)*2**128)
+        return fee_growth_global_0_X128_data[0]
     
     def get_fee_growth_global_1_X128(self):
         fee_growth_global_1_X128_data = self._tx_call(
@@ -310,8 +318,8 @@ class JediswapPool:
             func='get_fee_growth_global_1_X128',
             calldata=[]
         )
-        fee_growth_global_1_X128 = int(fee_growth_global_1_X128_data[0], 16) + (int(fee_growth_global_1_X128_data[1], 16)*2**128)
-        return fee_growth_global_1_X128
+        # fee_growth_global_1_X128 = int(fee_growth_global_1_X128_data[0], 16) + (int(fee_growth_global_1_X128_data[1], 16)*2**128)
+        return fee_growth_global_1_X128_data[0]
 
     def get_liquidity(self):
         liquidity = self._tx_call(
@@ -319,7 +327,7 @@ class JediswapPool:
             func='get_liquidity',
             calldata=[]
         )
-        return int(liquidity[0], 16)
+        return liquidity[0]
     
     def get_token_balance(self, token_addr, address):
         if token_addr != self.token0 and token_addr != self.token1:
@@ -330,9 +338,9 @@ class JediswapPool:
         balance = self._tx_call(
             to=token_addr,
             func='balance_of',
-            calldata=[str(jedi_address)]
+            calldata=[jedi_address]
         )
-        return self._u256_to_int(balance[0], balance[1])
+        return balance[0]
     
     def get_token0(self):
         return self.token0
@@ -342,109 +350,75 @@ class JediswapPool:
     
     def _register_user(self, address):
         if address in self.address_register.keys():
-            return self.address_register[address], None
-        new_user, tx_hash_obj = self._deploy_contract(
+            return self.address_register[address]
+        new_user = self._deploy_contract(
+            self.account_sierra_path,
             self.account_classhash, 
-            [self.pool, self.token0, self.token1]
+            [self.pool, self.token0, self.token1],
+            len(self.address_register)
         )
         self.address_register[address] = new_user
 
-        return new_user, tx_hash_obj
+        return new_user
 
-    def _mint_tokens(self, recipient, token, amount_low, amount_high):
+    def _mint_tokens(self, recipient, token, amount):
         return self._tx_invoke(
             token,
             "mint",
-            calldata=[recipient, amount_low, amount_high]
+            calldata=[recipient, amount]
         )
     
     def _declare_contract(self, path_to_sierra, path_to_casm):
-        declare_command = ['starkli', 'declare', 
-                        '--casm-file', path_to_casm, path_to_sierra
-                        ]
-        result = subprocess.run(declare_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return result.stdout.decode().strip()
+        # print('declaring')
+        compiled_contract = self._get_contract(path_to_sierra)
+        casm_compiled_contract = self._get_contract(path_to_casm)
+        casm_class = create_casm_class(casm_compiled_contract)
+        casm_class_hash = compute_casm_class_hash(casm_class)
+        declare_result = Contract.declare_v2_sync(
+            account=self.account, compiled_contract=compiled_contract, 
+            compiled_class_hash=casm_class_hash,max_fee=int(1e18)
+        )
+        declare_result.wait_for_acceptance_sync()
+        return declare_result.class_hash
 
-    def _deploy_contract(self, class_hash, constructor_arguments):
-        deploy_command = [
-            'starkli', 'deploy', class_hash, *constructor_arguments
-        ]
-        callresult = subprocess.run(deploy_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        contract_address = callresult.stdout.decode().strip()
-        error = callresult.stderr.decode()
-        if error.split()[0] == "Error:":
-            print(f'''
-                    DEPLOY TX ERROR:
-                    class_hash:       {class_hash}
-                    constructor data: {constructor_arguments}
-                ''', error)
-            exit(0)
-        tx_output_data = error.split()
-        print(tx_output_data)
-        tx_hash = tx_output_data[tx_output_data.index('transaction:') + 1]
-        tx_hash_obj = {
-            "tx_command": ["deploy", class_hash, *constructor_arguments],
-            "tx_hash": tx_hash,
+    def _deploy_contract(self, path_to_sierra, class_hash, constructor_arguments, salt):
+        # print('deploying')
+        compiled_contract = self._get_contract(path_to_sierra)
+        abi = create_sierra_compiled_contract(compiled_contract=compiled_contract).parsed_abi
+        
+        deployer = Deployer()
 
-        }
-        return contract_address, tx_hash_obj
+        contract_deployment = deployer.create_contract_deployment(
+            class_hash=class_hash,
+            abi=abi,
+            cairo_version=1,
+            calldata=constructor_arguments,
+            salt=salt,
+        )
+
+        res = self.account.execute_v1_sync(calls=contract_deployment.call, max_fee=int(1e16))
+        self.client.wait_for_tx_sync(res.transaction_hash)
+        return contract_deployment.address
 
     def _tx_invoke(self, to, func, calldata):
-        calldata = [str(x) for x in calldata]
-        invoke_command = [
-            'starkli', 'invoke', to, func, *calldata
-        ]
-        callresult = subprocess.run(invoke_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        error = callresult.stderr.decode()
-        if error.split()[0] == "Error:":
-            print(f'''
-                    INVOKE TX ERROR:
-                    to:       {to}
-                    function: {func}
-                    calldata: {calldata}
-                ''', error)
-            exit(0)
-
-        tx_hash_obj = {
-            "tx_command": ["invoke", to, func, *calldata],
-            "tx_hash": error.split()[-1],
-        }
-        return tx_hash_obj
-
-
+        # print(f"invoking - {to}, {func}, {calldata}")
+        contract = Contract.from_address_sync(provider=self.account, address=to)
+        invocation = contract.functions[func].invoke_v1_sync(*calldata, max_fee=int(1e16))
+        invocation.wait_for_acceptance_sync()
 
     def _tx_call(self, to, func, calldata):
-        calldata = [str(x) for x in calldata]
-        deploy_command = [
-            'starkli', 'call', to, func, *calldata
-        ]
-        callresult = subprocess.run(deploy_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        result = callresult.stdout.decode()
-        error = callresult.stderr
-        if len(error) > 0:
-            print(f'''
-                    CALL TX ERROR:
-                    to:       {to}
-                    function: {func}
-                    calldata: {calldata}
-                ''', error.decode())
-            exit(0)
-        # result = subprocess.run(deploy_command, stdout=subprocess.PIPE).stdout.decode()
-        res = re.findall(r'".*"', result)
-        output = []
-        for x in res:
-            output.append(x[1:-1])
-        return output
-
-    def _get_str_to_felt(self, string):
-        get_name_in_felt_command = [
-            'starkli', 'to-cairo-string', string
-        ]
-        result = subprocess.run(get_name_in_felt_command, stdout=subprocess.PIPE)
-        return result.stdout.decode().strip()
+        # print(f"calling - {to}, {func}, {calldata}")
+        contract = Contract.from_address_sync(provider=self.account, address=to)
+        result = contract.functions[func].call_sync(*calldata)
+        return result
 
     def _split_u256(self, number):
         return (number % 2**128, number // 2**128)
     
     def _u256_to_int(self, lower, upper):
         return (int(lower, 16) + (int(upper, 16) << 128))
+
+    def _get_contract(self, file_path):
+        with open(file_path, 'r') as f:
+            text=f.read()  
+        return text
